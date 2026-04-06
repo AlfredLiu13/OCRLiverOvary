@@ -1,4 +1,13 @@
+from pathlib import Path
 from pybedtools import BedTool #Available in bioconda environment
+from main import run_classification
+import logging
+import argparse
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 #Probably better to create a wrapper function:
 """
@@ -16,8 +25,10 @@ def classifyOcrPromotersEnhancers(
     ocrBedPath: str,
     tssBedPath: str,
     outputPrefix: str,
-    promoter_distance: int = 2000  #Might be worth switching to 5k?
+    promoterDistance: int = 2000  #Might be worth switching to 5k?
 ):
+    
+    logging.info(f"Processing OCRs: {ocrBedPath}")
     
     # Load BED files
     ocr = BedTool(ocrBedPath)
@@ -29,18 +40,16 @@ def classifyOcrPromotersEnhancers(
     
     #Classify OCRs into promoters by distance
     ocrPromoters = ocrWithGenes.filter(
-        lambda x: int(x[-1]) <= promoter_distance
+        lambda x: int(x[-1]) <= promoterDistance
     ).saveas(f"{outputPrefix}_promoters.bed")
 
     #Classify OCRs into enhancers by distance
     ocrEnhancers = ocrWithGenes.filter(
-        lambda x: int(x[-1]) > promoter_distance
+        lambda x: int(x[-1]) > promoterDistance
     ).saveas(f"{outputPrefix}_enhancers.bed")
 
-    print(f"Finished processing {ocrBedPath}")
-    print(f"Promoters (≤{promoter_distance}bp): {outputPrefix}_promoters.bed")
-    print(f"Enhancers (>{promoter_distance}bp): {outputPrefix}_enhancers.bed")
-
+    logging.info(f"Finished processing {ocrBedPath}")
+    
     return {
         "promoters": f"{outputPrefix}_promoters.bed",
         "enhancers": f"{outputPrefix}_enhancers.bed",
@@ -48,38 +57,50 @@ def classifyOcrPromotersEnhancers(
     }
 
 #classifyConservedRegions() --> Assigns promoter/enhancer labels to mapped (conserved) regions using TSS distance.
-def classifyConservedRegions(conserved_bed, tss_bed, output_prefix):
+def classifyConservedRegions(
+        conservedBedPath: str,
+        tssBedPath: str,
+        outputPrefix: str,
+        promoterDistance: int = 2000
+        ):
 
-    conserved = BedTool(conserved_bed)
-    tss = BedTool(tss_bed)
+    logging.info(f"Processing conserved regions: {conservedBedPath}")
+
+    conserved = BedTool(conservedBedPath)
+    tss = BedTool(tssBedPath)
 
     # Annotate distance
     annotated = conserved.closest(tss, d=True)
-    annotated.saveas(f"{output_prefix}_TSS.bed")
+    annotated.saveas(f"{outputPrefix}_TSS.bed")
 
     # Split promoter/enhancer
-    promoters = annotated.filter(lambda x: int(x[-1]) <= 5000).saveas(
-        f"{output_prefix}_promoters.bed"
+    promoters = annotated.filter(lambda x: int(x[-1]) <= promoterDistance).saveas(
+        f"{outputPrefix}_promoters.bed"
     )
-    enhancers = annotated.filter(lambda x: int(x[-1]) > 5000).saveas(
-        f"{output_prefix}_enhancers.bed"
+    enhancers = annotated.filter(lambda x: int(x[-1]) >  promoterDistance).saveas(
+        f"{outputPrefix}_enhancers.bed"
     )
 
     return promoters, enhancers
 
 #findSharedElements() --> Identify conserved regions that overlap native regulatory elements in the target species.
-def findSharedElements(mapped_file, native_file, output_file):
+def findSharedElements(
+        mappedFilePath: str,
+        nativeFilePath: str,
+        outputFilePath: str
+        ):
 
-    mapped = BedTool(mapped_file)
-    native = BedTool(native_file)
+    logging.info(f"Finding shared elements")
+
+    mapped = BedTool(mappedFilePath)
+    native = BedTool(nativeFilePath)
 
     shared = mapped.intersect(native, u=True)
-    shared.saveas(output_file)
+    shared.saveas(outputFilePath)
 
-    return output_file
+    return outputFilePath
 
 if __name__ == "__main__":
-    import argparse
 
     parser = argparse.ArgumentParser(description="Classify OCRs into promoters/enhancers")
     parser.add_argument("--config", required=True)

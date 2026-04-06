@@ -1,5 +1,7 @@
 #main entry point for the pipeline
 from pathlib import Path
+from bedtools_preprocessing import load_config
+from classification import classifyOcrPromotersEnhancers
 
 def run_quality_control():
     # check quality of human and mouse datasets
