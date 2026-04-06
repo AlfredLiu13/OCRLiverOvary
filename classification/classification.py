@@ -1,51 +1,5 @@
 from pybedtools import BedTool #Available in bioconda environment
 
-#Human Liver:
-#Load files
-ocrHumanLiver = BedTool("ocrHumanLiver.bed")
-tssHuman = BedTool("tssHuman.bed")
-
-#Define ±2kb region in the promoter .bed file
-promoterRegionsHuman = tssHuman.slop(genome="hg38.genome", b=2000)
-promoterRegionsHuman.saveas("promoters2kbHuman.bed")
-
-#Find promoters -> If overlap = Promoter
-ocrPromotersHuman = ocrHumanLiver.intersect(promoterRegionsHuman, u=True)
-ocrPromotersHuman.saveas("promotersHumanLiver.bed")
-
-#Enhancers -> If no overlap = Enhancer
-ocrEnhancersHuman = ocrHumanLiver.intersect(promoterRegionsHuman, v=True)
-ocrEnhancersHuman.saveas("enhancersHumanLiver.bed")
-
-#Find closest gene for each OCR
-ocrWithGenesHuman = ocrHumanLiver.closest(tssHuman, d=True)
-ocrWithGenesHuman.saveas("ocrNearestTSSHuman.bed")
-
-
-
-#Mouse Liver:
-#Load files
-ocrMouseLiver = BedTool("ocrMouseLiver.bed")
-tssMouse = BedTool("tssMouse.bed")
-
-#Define ±2kb region in the promoter .bed file
-promoterRegionsMouse = tssMouse.slop(genome="mm10.genome", b=2000)
-promoterRegionsMouse.saveas("promoters2kbMouse.bed")
-
-#Find promoters -> If overlap = Promoter
-ocrPromotersMouse = ocrMouseLiver.intersect(promoterRegionsMouse, u=True)
-ocrPromotersMouse.saveas("promotersMouseLiver.bed")
-
-#Enhancers -> If no overlap = Enhancer
-ocrEnhancersMouse = ocrMouseLiver.intersect(promoterRegionsMouse, v=True)
-ocrEnhancersMouse.saveas("enhancersMouseLiver.bed")
-
-#Find closest gene for each OCR
-ocrWithGenesMouse = ocrMouseLiver.closest(tssMouse, d=True)
-ocrWithGenesMouse.saveas("ocrNearestTSSMouse.bed")
-
-
-
 #Probably better to create a wrapper function:
 """
 classifyOcrPromotersEnhancers() --> Classify OCRs as promoters or enhancers and assign nearest TSS.
@@ -61,36 +15,68 @@ Paramaeters:
 def classifyOcrPromotersEnhancers(
     ocrBedPath: str,
     tssBedPath: str,
-    genomeFile: str,
     outputPrefix: str
+    promoter_distance: int = 2000  #Might be worth switching to 5k?
 ):
     
     # Load BED files
     ocr = BedTool(ocrBedPath)
     tss = BedTool(tssBedPath)
-    
-    # Expand TSS to ±2kb promoter regions
-    promoter_regions = tss.slop(genome=genomeFile, b=2000)
-    promoter_regions.saveas(f"{outputPrefix}_promoterRegions2kb.bed")
-    
-    # Classify promoters (overlap)
-    ocrPromoters = ocr.intersect(promoter_regions, u=True)
-    ocrPromoters.saveas(f"{outputPrefix}_promoters.bed")
-    
-    # Classify enhancers (no overlap)
-    ocrEnhancers = ocr.intersect(promoter_regions, v=True)
-    ocrEnhancers.saveas(f"{outputPrefix}_enhancers.bed")
-    
-    # Assign nearest TSS
+
+    #Annotate nearest TSS + distance
     ocrWithGenes = ocr.closest(tss, d=True)
     ocrWithGenes.saveas(f"{outputPrefix}_nearestTSS.bed")
     
-    print(f"Finished processing {ocrBedPath}.")
-    print(f"Promoters: {outputPrefix}_promoters.bed")
-    print(f"Enhancers: {outputPrefix}_enhancers.bed")
-    print(f"Nearest TSS: {outputPrefix}_nearestTSS.bed\n")
-    
-    return ocrPromoters, ocrEnhancers, ocrWithGenes
+    #Classify OCRs into promoters by distance
+    ocrPromoters = ocrWithGenes.filter(
+        lambda x: int(x[-1]) <= promoter_distance
+    ).saveas(f"{outputPrefix}_promoters.bed")
+
+    #Classify OCRs into enhancers by distance
+    ocrEnhancers = ocrWithGenes.filter(
+        lambda x: int(x[-1]) > promoter_distance
+    ).saveas(f"{outputPrefix}_enhancers.bed")
+
+    print(f"Finished processing {ocrBedPath}")
+    print(f"Promoters (≤{promoter_distance}bp): {outputPrefix}_promoters.bed")
+    print(f"Enhancers (>{promoter_distance}bp): {outputPrefix}_enhancers.bed")
+
+    return {
+        "promoters": f"{outputPrefix}_promoters.bed",
+        "enhancers": f"{outputPrefix}_enhancers.bed",
+        "nearest": f"{outputPrefix}_nearestTSS.bed"
+    }
+
+#classifyConservedRegions() --> Assigns promoter/enhancer labels to mapped (conserved) regions using TSS distance.
+def classifyConservedRegions(conserved_bed, tss_bed, output_prefix):
+
+    conserved = BedTool(conserved_bed)
+    tss = BedTool(tss_bed)
+
+    # Annotate distance
+    annotated = conserved.closest(tss, d=True)
+    annotated.saveas(f"{output_prefix}_TSS.bed")
+
+    # Split promoter/enhancer
+    promoters = annotated.filter(lambda x: int(x[-1]) <= 5000).saveas(
+        f"{output_prefix}_promoters.bed"
+    )
+    enhancers = annotated.filter(lambda x: int(x[-1]) > 5000).saveas(
+        f"{output_prefix}_enhancers.bed"
+    )
+
+    return promoters, enhancers
+
+#findSharedElements() --> Identify conserved regions that overlap native regulatory elements in the target species.
+def findSharedElements(mapped_file, native_file, output_file):
+
+    mapped = BedTool(mapped_file)
+    native = BedTool(native_file)
+
+    shared = mapped.intersect(native, u=True)
+    shared.saveas(output_file)
+
+    return output_file
 
 if __name__ == "__main__":
     import argparse
