@@ -256,11 +256,200 @@ def findSharedElements(
         logger.error(f"Error finding shared elements: {e}")
         raise
 
+#Main wrapper function
+def run_classification(config_path: Path) -> None:
+    """
+    Main pipeline orchestrator. Loads config and runs classification steps.
+    
+    Expected YAML config structure:
+    ```
+    species:
+      species1:
+        ocr_bed: path/to/species1_ocrs.bed
+        tss_bed: path/to/species1_tss.bed
+        output_prefix: results/species1
+      species2:
+        ocr_bed: path/to/species2_ocrs.bed
+        tss_bed: path/to/species2_tss.bed
+        output_prefix: results/species2
+    
+    mapping:
+      species1_to_species2: path/to/species1_ocrs_mapped_to_species2.bed
+      species2_to_species1: path/to/species2_ocrs_mapped_to_species1.bed
+    
+    parameters:
+      promoter_distance: 2000
+    ```
+    
+    Inputs:
+        config_path : Path -> Path to YAML configuration file.
+    """
+    try:
+        import yaml
+    except ImportError:
+        logger.error(
+            "PyYAML not found. Install with: pip install pyyaml"
+        )
+        raise
+    
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+    
+    logger.info(f"Loading configuration from {config_path}")
+    
+    try:
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+    except Exception as e:
+        logger.error(f"Error loading config: {e}")
+        raise
+    
+    #Extract parameters
+    species_config = config.get("species", {})
+    mapping_config = config.get("mapping", {})
+    params = config.get("parameters", {})
+    
+    promoter_distance = params.get("promoter_distance", 2000)
+    logger.info(f"Using promoter distance threshold: {promoter_distance} bp")
+    
+    #Step 1: Classify native OCRs in each species
+    classification_results = {}
+    for species_name, species_data in species_config.items():
+        logger.info(f"\n{'='*70}")
+        logger.info(f"STEP 1: Classifying native OCRs for {species_name}")
+        logger.info(f"{'='*70}")
+        
+        result = classifyOcrPromotersEnhancers(
+            ocr_bed_path=species_data["ocr_bed"],
+            tss_bed_path=species_data["tss_bed"],
+            output_prefix=species_data["output_prefix"],
+            promoter_distance=promoter_distance,
+        )
+        classification_results[species_name] = result
+    
+    #Step 2: Classify mapped/conserved OCRs
+    logger.info(f"\n{'='*70}")
+    logger.info("STEP 2: Classifying mapped/conserved OCRs")
+    logger.info(f"{'='*70}")
+    
+    mapping_results = {}
+    for mapping_name, mapping_data in mapping_config.items():
+        # Parse mapping direction (e.g., "species1_to_species2")
+        parts = mapping_name.split("_to_")
+        if len(parts) != 2:
+            logger.warning(f"Skipping malformed mapping name: {mapping_name}")
+            continue
+        
+        source_species, target_species = parts
+        logger.info(f"\nProcessing mapping: {source_species} → {target_species}")
+        
+        #Get target species TSS for annotation
+        if target_species not in species_config:
+            logger.warning(
+                f"Target species '{target_species}' not found in config. Skipping."
+            )
+            continue
+        
+        target_tss = species_config[target_species]["tss_bed"]
+        output_prefix = f"{species_config[target_species]['output_prefix']}_mapped_from_{source_species}"
+        
+        #Classify mapped regions
+        promoters_path, enhancers_path = classifyConservedRegions(
+            conserved_bed_path=mapping_data,
+            tss_bed_path=target_tss,
+            output_prefix=output_prefix,
+            promoter_distance=promoter_distance,
+        )
+        
+        mapping_results[mapping_name] = {
+            "promoters": promoters_path,
+            "enhancers": enhancers_path,
+        }
+    
+    #Step 3: Find shared regulatory elements across species
+    logger.info(f"\n{'='*70}")
+    logger.info("STEP 3: Finding shared regulatory elements")
+    logger.info(f"{'='*70}")
+    
+    shared_results = {}
+    for mapping_name, mapping_data in mapping_config.items():
+        parts = mapping_name.split("_to_")
+        if len(parts) != 2:
+            continue
+        
+        source_species, target_species = parts
+        
+        if source_species not in species_config or target_species not in species_config:
+            logger.warning(f"Skipping mapping with missing species config: {mapping_name}")
+            continue
+        
+        logger.info(f"\nFinding shared elements: {mapping_name}")
+        
+        # Find overlap between mapped and native OCRs
+        mapped_ocrs = mapping_data
+        native_ocrs = species_config[target_species]["ocr_bed"]
+        output_file = (
+            f"{species_config[target_species]['output_prefix']}"
+            f"_shared_from_{source_species}.bed"
+        )
+        
+        shared_path = findSharedElements(
+            mapped_file_path=mapped_ocrs,
+            native_file_path=native_ocrs,
+            output_file_path=output_file,
+        )
+        
+        shared_results[mapping_name] = shared_path
+    
+    #Print summary
+    logger.info(f"\n{'='*70}")
+    logger.info("CLASSIFICATION PIPELINE COMPLETE")
+    logger.info(f"{'='*70}")
+    logger.info("Classification Results:")
+    for species, files in classification_results.items():
+        logger.info(f"  {species}:")
+        for file_type, path in files.items():
+            logger.info(f"    {file_type}: {path}")
+    
+    if mapping_results:
+        logger.info("Mapped/Conserved Classification:")
+        for mapping, files in mapping_results.items():
+            logger.info(f"  {mapping}:")
+            for file_type, path in files.items():
+                logger.info(f"    {file_type}: {path}")
+    
+    if shared_results:
+        logger.info("Shared Elements:")
+        for mapping, path in shared_results.items():
+            logger.info(f"  {mapping}: {path}")
+
+
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Classify OCRs into promoters/enhancers")
-    parser.add_argument("--config", required=True)
+    parser = argparse.ArgumentParser(description="Classify OCRs into promoters/enhancers and compare across species",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  ./classify_ocr.py --config config.yaml
+  ./classify_ocr.py --config /path/to/config.yaml --log-level DEBUG
+        """,
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level (default: INFO)",)
 
     args = parser.parse_args()
 
-    run_classification(Path(args.config))
+    #Set log level
+    logger.setLevel(getattr(logging, args.log_level))
+    
+    try:
+        run_classification(args.config)
+        logger.info("Pipeline finished successfully")
+    except Exception as e:
+        logger.error(f"Pipeline failed: {e}", exc_info=True)
+        exit(1)
