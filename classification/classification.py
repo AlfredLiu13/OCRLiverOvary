@@ -28,7 +28,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 
-#Probably better to create a wrapper function:
+
 """
 classifyOcrPromotersEnhancers() --> Classify OCRs as promoters or enhancers and assign nearest TSS.
 Paramaeters:
