@@ -25,7 +25,6 @@ SLURM Script:
 
 from pathlib import Path
 from pybedtools import BedTool #Available in bioconda environment
-from main import run_classification
 from typing import Dict, Tuple, Optional
 import logging
 import argparse
@@ -329,9 +328,7 @@ def run_classification(config_path: Path) -> None:
         classification_results[species_name] = result
     
     #Step 2: Classify mapped/conserved OCRs
-    logger.info(f"\n{'='*70}")
     logger.info("STEP 2: Classifying mapped/conserved OCRs")
-    logger.info(f"{'='*70}")
     
     mapping_results = {}
     for mapping_name, mapping_data in mapping_config.items():
@@ -368,9 +365,7 @@ def run_classification(config_path: Path) -> None:
         }
     
     #Step 3: Find shared regulatory elements across species
-    logger.info(f"\n{'='*70}")
     logger.info("STEP 3: Finding shared regulatory elements")
-    logger.info(f"{'='*70}")
     
     shared_results = {}
     for mapping_name, mapping_data in mapping_config.items():
@@ -386,7 +381,7 @@ def run_classification(config_path: Path) -> None:
         
         logger.info(f"\nFinding shared elements: {mapping_name}")
         
-        # Find overlap between mapped and native OCRs
+        #Find overlap between mapped and native OCRs
         mapped_ocrs = mapping_data
         native_ocrs = species_config[target_species]["ocr_bed"]
         output_file = (
@@ -426,8 +421,8 @@ def run_classification(config_path: Path) -> None:
 
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description="Classify OCRs into promoters/enhancers and compare across species",
+    parser = argparse.ArgumentParser(
+        description="Classify OCRs into promoters/enhancers and compare across species",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -436,11 +431,18 @@ Examples:
         """,
     )
     parser.add_argument(
+        "--config",
+        type=Path,
+        required=True,
+        help="Path to YAML configuration file",
+    )
+    parser.add_argument(
         "--log-level",
         type=str,
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Logging level (default: INFO)",)
+        help="Logging level (default: INFO)",
+        )
 
     args = parser.parse_args()
 
