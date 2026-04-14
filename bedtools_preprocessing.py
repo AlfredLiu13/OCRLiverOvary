@@ -224,6 +224,44 @@ def extract_bed3(input_path: Path, output_path: Path) -> int:
         logger.error(f"Failed to extract BED3 from {input_path}: {e.stderr}")
         raise
 
+def sort_bed(input_path: Path, output_path: Path) -> int:
+    """
+    Sort a BED file by chromosome and position (required for bedtools).
+    
+    Inputs:
+        input_path : Path -> Path to unsorted BED file
+        output_path : Path -> Path to output sorted BED file
+    
+    Outputs:
+        int -> Number of lines in output file
+    
+    Errors:
+        FileNotFoundError -> If input file doesn't exist
+        subprocess.CalledProcessError -> If sort command fails
+    """
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+    
+    try:
+        with open(output_path, "w") as out:
+            result = subprocess.run(
+                ["sort", "-k1,1", "-k2,2n", str(input_path)],
+                stdout=out,
+                stderr=subprocess.PIPE,
+                check=True,
+                text=True
+            )
+        
+        # Count lines
+        with open(output_path) as f:
+            line_count = sum(1 for _ in f)
+        
+        logger.debug(f"Sorted BED: {input_path} -> {output_path} ({line_count} lines)")
+        return line_count
+    
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to sort BED file {input_path}: {e.stderr}")
+        raise
 
 def read_yaml_config(config_path: Path) -> Dict[str, Any]:
     """
@@ -247,6 +285,7 @@ def read_yaml_config(config_path: Path) -> Dict[str, Any]:
             config = yaml.safe_load(f)
         logger.info(f"Loaded config: {config_path}")
         return config
+    
     except yaml.YAMLError as e:
         logger.error(f"Failed to parse YAML config: {e}")
         raise
@@ -323,6 +362,18 @@ def preprocess_config(config_path: Path) -> Path:
                 logger.error(f"    Failed to extract BED3: {e}")
                 raise
         
+        #Sort BED file
+        sorted_file = cleaned_dir / f"{cleaned_file.stem}.sorted{cleaned_file.suffix}"
+        try:
+            line_count = sort_bed(cleaned_file, sorted_file)
+            logger.info(f"    Sorted {line_count} lines -> {sorted_file}")
+            # Replace original with sorted version
+            shutil.move(str(sorted_file), str(cleaned_file))
+            logger.info(f"    Replaced with sorted version")
+        except Exception as e:
+            logger.error(f"    Failed to sort BED: {e}")
+            raise
+
         #Update config with cleaned path
         processed_config[species_key + "_cleaned"] = str(cleaned_file)
     
@@ -365,6 +416,18 @@ def preprocess_config(config_path: Path) -> Path:
             except Exception as e:
                 logger.error(f"    Failed to extract BED3: {e}")
                 raise
+
+        #Sort BED file
+        sorted_file = cleaned_dir / f"{cleaned_file.stem}.sorted{cleaned_file.suffix}"
+        try:
+            line_count = sort_bed(cleaned_file, sorted_file)
+            logger.info(f"    Sorted {line_count} lines -> {sorted_file}")
+            # Replace original with sorted version
+            shutil.move(str(sorted_file), str(cleaned_file))
+            logger.info(f"    Replaced with sorted version")
+        except Exception as e:
+            logger.error(f"    Failed to sort BED: {e}")
+            raise
         
         #Update config with cleaned path
         processed_config[mapping_key + "_cleaned"] = str(cleaned_file)
@@ -408,7 +471,19 @@ def preprocess_config(config_path: Path) -> Path:
             except Exception as e:
                 logger.error(f"    Failed to extract BED3: {e}")
                 raise
-        
+
+        #Sort BED file
+        sorted_file = cleaned_dir / f"{cleaned_file.stem}.sorted{cleaned_file.suffix}"
+        try:
+            line_count = sort_bed(cleaned_file, sorted_file)
+            logger.info(f"    Sorted {line_count} lines -> {sorted_file}")
+            # Replace original with sorted version
+            shutil.move(str(sorted_file), str(cleaned_file))
+            logger.info(f"    Replaced with sorted version")
+        except Exception as e:
+            logger.error(f"    Failed to sort BED: {e}")
+            raise
+
         #Update config
         processed_config[tss_key + "_cleaned"] = str(cleaned_file)
 
