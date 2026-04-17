@@ -35,10 +35,16 @@ Other files:
 
 ## Dependencies
 
-Install Python dependencies with:
+You can Install LiverOCRAnalysis with:
 
+Option1:
 ```bash
 pip install -r requirements.txt 
+```
+
+Option2:
+```bash
+conda install ...
 ```
 
 ## External tools required:
@@ -50,6 +56,8 @@ pip install -r requirements.txt
 
 
 ## Usage
+```bash    
+```
 
 
 
@@ -57,4 +65,8 @@ pip install -r requirements.txt
 
 
 
-#
+## Contact
+If you have any further questions please reach out to:
+- email
+- email
+- email 
