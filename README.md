@@ -20,8 +20,7 @@ The repository is organized based on the main analysis steps:
 
 - `data_qc/` – quality control of datasets  
 - `alignment/` – mapping OCRs across species  
-- `regulatory_comparison/` – identifying shared and species-specific regions  
-- `classification/` – promoter vs enhancer classification  
+- `classification/` – promoter vs enhancer classification + identifying shared and species-specific regions
 - `motif_analysis/` – transcription factor motif analysis  
 - `enrichment_analysis/` – biological process enrichment  
 - `benchmarking/` – testing and validation  
@@ -53,7 +52,10 @@ conda install ...
 * HALPER
 * HOMER
 * GREAT / rGREAT
-
+* yaml
+* argparse
+* logging
+* typing
 
 ## Usage
 ```bash    
@@ -67,6 +69,7 @@ conda install ...
 
 ## Contact
 If you have any further questions please reach out to:
-- email
-- email
-- email 
+- alfredl@andrew.cmu.edu
+- halhosan@andrew.cmu.edu
+- smakkar@andrew.cmu.edu
+- bhanvip@andrew.cmu.edu
