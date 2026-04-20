@@ -1,2 +1,10 @@
 numpy
+pandas
+yaml
+argparse
+typing
+pathlib
+logging
+seaborn
+mathplotlib.pyplot
 pybedtools
