@@ -10,23 +10,23 @@ import sys
 
 def run_command(cmd, step_name):
     """
-    run a shell command and print info about the step being run
+    run a command and stop if it fails
     """
-    print(f"\n[INFO] Starting step: {step_name}")
-    print(f"[INFO] Command: {' '.join(str(x) for x in cmd)}")
+    print(f"\n[INFO] starting step: {step_name}")
+    print(f"[INFO] command: {' '.join(str(x) for x in cmd)}")
 
     try:
         subprocess.run(cmd, check=True)
-        print(f"[INFO] Finished step: {step_name}")
+        print(f"[INFO] finished step: {step_name}")
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] Step failed: {step_name}")
-        print(f"[ERROR] Exit code: {e.returncode}")
+        print(f"[ERROR] step failed: {step_name}")
+        print(f"[ERROR] exit code: {e.returncode}")
         sys.exit(e.returncode)
 
 
 def check_file_exists(path_str, label):
     """
-    check if a file exists and exit with an error if it doesn't, otherwise return the Path object
+    check that a file exists
     """
     path = Path(path_str)
     if not path.exists():
@@ -34,44 +34,94 @@ def check_file_exists(path_str, label):
         sys.exit(1)
     return path
 
-def run_quality_control():
+
+def ensure_dir(path_str):
     """
-    Placeholder for QC.
-    Right now QC was already completed manually based on your progress report.
+    make sure an output directory exists
     """
-    print("\n[INFO] Quality control step is not implemented in the CLI yet.")
-    print("[INFO] This step was already completed manually for the current project.")
+    path = Path(path_str)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
-def run_alignment(script_path):
+def run_alignment(
+    halper_script,
+    human_peaks,
+    mouse_peaks,
+    hal_file,
+    output_dir,
+    hal_liftover_path=None,
+    keep_chr_prefix=None,
+    min_len=50,
+    protect_dist=10,
+    max_frac=1.5,
+    preserve=None,
+):
     """
-    Run the alignment module.
+    submit two HALPER alignment jobs:
+    1) human -> mouse
+    2) mouse -> human
     """
-    script = check_file_exists(script_path, "Alignment SLURM script")
-    run_command(["sbatch", str(script)], "alignment")
+    script = check_file_exists(halper_script, "HALPER alignment script")
+    human_peaks = check_file_exists(human_peaks, "Human peaks file")
+    mouse_peaks = check_file_exists(mouse_peaks, "Mouse peaks file")
+    hal_file = check_file_exists(hal_file, "HAL alignment file")
+    output_dir = ensure_dir(output_dir)
 
+    human_to_mouse_dir = output_dir / "human_to_mouse"
+    mouse_to_human_dir = output_dir / "mouse_to_human"
+    human_to_mouse_dir.mkdir(parents=True, exist_ok=True)
+    mouse_to_human_dir.mkdir(parents=True, exist_ok=True)
 
-def run_classification(config_path, log_level="INFO"):
-    """
-    Run the classification module using its YAML config
-    """
-    config = check_file_exists(config_path, "Classification config")
-    script = check_file_exists("classification/classification.py", "Classification script")
-
-    cmd = [
-        sys.executable,
+    # first mapping: human to mouse
+    human_cmd = [
+        "sbatch",
         str(script),
-        "--config",
-        str(config),
-        "--log-level",
-        log_level,
+        "-b", str(human_peaks),
+        "-o", str(human_to_mouse_dir),
+        "-s", "Human",
+        "-t", "Mouse",
+        "-c", str(hal_file),
+        "-min_len", str(min_len),
+        "-protect_dist", str(protect_dist),
+        "-max_frac", str(max_frac),
     ]
-    run_command(cmd, "classification")
+
+    # second mapping: mouse to human
+    mouse_cmd = [
+        "sbatch",
+        str(script),
+        "-b", str(mouse_peaks),
+        "-o", str(mouse_to_human_dir),
+        "-s", "Mouse",
+        "-t", "Human",
+        "-c", str(hal_file),
+        "-min_len", str(min_len),
+        "-protect_dist", str(protect_dist),
+        "-max_frac", str(max_frac),
+    ]
+
+    # add optional arguments if the user passes them
+    if hal_liftover_path:
+        human_cmd.extend(["--halPath", str(hal_liftover_path)])
+        mouse_cmd.extend(["--halPath", str(hal_liftover_path)])
+
+    if keep_chr_prefix:
+        human_cmd.extend(["--keepChrPrefix", str(keep_chr_prefix)])
+        mouse_cmd.extend(["--keepChrPrefix", str(keep_chr_prefix)])
+
+    if preserve:
+        preserve_arg = ",".join(preserve)
+        human_cmd.extend(["-preserve", preserve_arg])
+        mouse_cmd.extend(["-preserve", preserve_arg])
+
+    run_command(human_cmd, "alignment_human_to_mouse")
+    run_command(mouse_cmd, "alignment_mouse_to_human")
 
 
 def run_motif_analysis(script_path):
     """
-    Run motif analysis
+    run motif analysis script
     """
     script = check_file_exists(script_path, "Motif analysis script")
     run_command(["bash", str(script)], "motif_analysis")
@@ -87,12 +137,14 @@ def run_annotate_peaks(
     beds=None,
 ):
     """
-    Run HOMER annotatePeaks wrapper.
+    run HOMER annotation wrapper
     """
     script = check_file_exists(
         "enrichment_analysis/run_annotatepeaks.py",
         "annotatePeaks wrapper",
     )
+
+    ensure_dir(outdir)
 
     cmd = [
         sys.executable,
@@ -117,23 +169,25 @@ def run_annotate_peaks(
     run_command(cmd, "enrichment_annotation")
 
 
-def run_great(script_path, bed_file, species, output_prefix):
+def run_classification(config_path, log_level="INFO"):
     """
-    Run GREAT / rGREAT wrapper on one BED file
+    run classification step
     """
-    script = check_file_exists(script_path, "GREAT wrapper script")
-    bed = check_file_exists(bed_file, "BED file for GREAT")
+    config = check_file_exists(config_path, "Classification config")
+    script = check_file_exists(
+        "classification/classification.py",
+        "Classification script",
+    )
 
     cmd = [
-        "bash",
+        sys.executable,
         str(script),
-        str(bed),
-        str(species),
-        str(output_prefix),
+        "--config",
+        str(config),
+        "--log-level",
+        log_level,
     ]
-    run_command(cmd, "great_analysis")
-
-
+    run_command(cmd, "classification")
 
 
 def main():
@@ -145,117 +199,155 @@ def main():
         "--step",
         required=True,
         choices=[
-            "qc",
             "alignment",
-            "classification",
             "motif",
             "annotate",
-            "great",
-            "benchmark",
+            "classification",
             "full",
         ],
-        help="Pipeline step to run",
+        help="pipeline step to run",
     )
 
-    # common optional args
     parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Logging level for Python-based steps",
+        help="logging level for python-based steps",
     )
 
-    # alignment args
+    # alignment arguments
     parser.add_argument(
         "--alignment-script",
-        default="alignment/run_halper.sh",
-        help="Path to the SLURM script for HALPER alignment",
+        default="alignment/halper_map_peak_orthologs.sh",
+        help="path to the HALPER slurm script",
     )
-
-    # classification args
     parser.add_argument(
-        "--config",
-        default="classification/sample_config.yaml",
-        help="Path to classification YAML config",
+        "--human-peaks",
+        help="path to human narrowPeak or BED file",
+    )
+    parser.add_argument(
+        "--mouse-peaks",
+        help="path to mouse narrowPeak or BED file",
+    )
+    parser.add_argument(
+        "--hal-file",
+        help="path to HAL alignment file",
+    )
+    parser.add_argument(
+        "--alignment-outdir",
+        default="results/alignment",
+        help="output directory for alignment results",
+    )
+    parser.add_argument(
+        "--hal-liftover-path",
+        default=None,
+        help="optional path to halLiftover binary",
+    )
+    parser.add_argument(
+        "--keep-chr-prefix",
+        default=None,
+        help="optional chromosome prefix filter",
+    )
+    parser.add_argument(
+        "--min-len",
+        type=int,
+        default=50,
+        help="minimum ortholog length for HALPER",
+    )
+    parser.add_argument(
+        "--protect-dist",
+        type=int,
+        default=10,
+        help="summit protection distance for HALPER",
+    )
+    parser.add_argument(
+        "--max-frac",
+        type=float,
+        default=1.5,
+        help="maximum fraction of original peak length for HALPER",
+    )
+    parser.add_argument(
+        "--preserve",
+        nargs="+",
+        default=None,
+        help="optional narrowPeak columns to preserve, e.g. signal pValue qValue",
     )
 
-    # motif args
+    # motif arguments
     parser.add_argument(
         "--motif-script",
         default="motif_analysis/run_homer.sh",
-        help="Path to motif analysis shell script",
+        help="path to motif analysis shell script",
     )
 
-    # annotatePeaks args
+    # enrichment arguments
     parser.add_argument(
         "--bed-dir",
         default="results",
-        help="Directory containing BED files for enrichment annotation",
+        help="directory containing BED files for enrichment annotation",
     )
     parser.add_argument(
         "--outdir",
         default="enrichment_analysis/annotated",
-        help="Output directory for enrichment annotation results",
+        help="output directory for enrichment annotation results",
     )
     parser.add_argument(
         "--genome",
         default="hg38",
-        help="Genome name or FASTA path for annotatePeaks",
+        help="genome name or fasta path for annotatePeaks",
     )
     parser.add_argument(
         "--homer-bin",
         default="annotatePeaks.pl",
-        help="Path to HOMER annotatePeaks.pl",
+        help="path to HOMER annotatePeaks.pl",
     )
     parser.add_argument(
         "--gtf",
         default=None,
-        help="Optional GTF file for annotatePeaks",
+        help="optional GTF file for annotation",
     )
     parser.add_argument(
         "--gff3",
         default=None,
-        help="Optional GFF3 file for annotatePeaks",
+        help="optional GFF3 file for annotation",
     )
     parser.add_argument(
         "--beds",
         nargs="+",
         default=None,
-        help="Optional BED filenames to annotate",
+        help="optional BED filenames to annotate",
     )
 
-    # GREAT args
+    # classification arguments
     parser.add_argument(
-        "--great-script",
-        default="enrichment_analysis/run_great.sh",
-        help="Path to GREAT shell wrapper",
-    )
-    parser.add_argument(
-        "--great-bed",
-        default=None,
-        help="Input BED file for GREAT analysis",
-    )
-    parser.add_argument(
-        "--great-species",
-        default=None,
-        help='Species for GREAT, e.g. "hg38" or "mm10"',
-    )
-    parser.add_argument(
-        "--great-output-prefix",
-        default=None,
-        help="Output prefix for GREAT results",
+        "--config",
+        default="classification/sample_config.yaml",
+        help="path to classification YAML config",
     )
 
     args = parser.parse_args()
 
-    if args.step == "qc":
-        run_quality_control()
+    if args.step == "alignment":
+        if not args.human_peaks or not args.mouse_peaks or not args.hal_file:
+            print("[ERROR] alignment step requires:")
+            print("        --human-peaks")
+            print("        --mouse-peaks")
+            print("        --hal-file")
+            sys.exit(1)
 
-    elif args.step == "alignment":
-        run_alignment(args.alignment_script)
-
-    elif args.step == "classification":
-        run_classification(args.config, args.log_level)
+        run_alignment(
+            halper_script=args.alignment_script,
+            human_peaks=args.human_peaks,
+            mouse_peaks=args.mouse_peaks,
+            hal_file=args.hal_file,
+            output_dir=args.alignment_outdir,
+            hal_liftover_path=args.hal_liftover_path,
+            keep_chr_prefix=args.keep_chr_prefix,
+            min_len=args.min_len,
+            protect_dist=args.protect_dist,
+            max_frac=args.max_frac,
+            preserve=args.preserve,
+        )
 
     elif args.step == "motif":
         run_motif_analysis(args.motif_script)
@@ -271,28 +363,31 @@ def main():
             beds=args.beds,
         )
 
-    elif args.step == "great":
-        if not args.great_bed or not args.great_species or not args.great_output_prefix:
-            print("[ERROR] GREAT step requires:")
-            print("        --great-bed")
-            print("        --great-species")
-            print("        --great-output-prefix")
-            sys.exit(1)
-
-        run_great(
-            script_path=args.great_script,
-            bed_file=args.great_bed,
-            species=args.great_species,
-            output_prefix=args.great_output_prefix,
-        )
-
-    elif args.step == "benchmark":
-        run_benchmarking()
+    elif args.step == "classification":
+        run_classification(args.config, args.log_level)
 
     elif args.step == "full":
-        run_quality_control()
-        run_alignment(args.alignment_script)
-        run_classification(args.config, args.log_level)
+        if not args.human_peaks or not args.mouse_peaks or not args.hal_file:
+            print("[ERROR] full pipeline requires alignment inputs:")
+            print("        --human-peaks")
+            print("        --mouse-peaks")
+            print("        --hal-file")
+            sys.exit(1)
+
+        # run steps in the order you confirmed
+        run_alignment(
+            halper_script=args.alignment_script,
+            human_peaks=args.human_peaks,
+            mouse_peaks=args.mouse_peaks,
+            hal_file=args.hal_file,
+            output_dir=args.alignment_outdir,
+            hal_liftover_path=args.hal_liftover_path,
+            keep_chr_prefix=args.keep_chr_prefix,
+            min_len=args.min_len,
+            protect_dist=args.protect_dist,
+            max_frac=args.max_frac,
+            preserve=args.preserve,
+        )
         run_motif_analysis(args.motif_script)
         run_annotate_peaks(
             bed_dir=args.bed_dir,
@@ -303,11 +398,12 @@ def main():
             gff3=args.gff3,
             beds=args.beds,
         )
-        print("\n[INFO] Full pipeline wrapper finished.")
-        print("[INFO] GREAT is not run automatically in --step full because it needs a specific BED input each time.")
+        run_classification(args.config, args.log_level)
+
+        print("\n[INFO] full pipeline finished")
 
     else:
-        print("[ERROR] Unknown step selected.")
+        print("[ERROR] unknown step selected")
         sys.exit(1)
 
 
