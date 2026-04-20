@@ -63,17 +63,52 @@ conda install -c bioconda bedtools pybedtools
 
 ### 3. Install External Tools
 The pipeline requires the following external tools. Install them according to your system and environment:
-* [BEDTools](https://bedtools.readthedocs.io/en/latest/) (v2.31)
-* [HALPER](https://github.com/pfenninglab/halLiftover-postprocessing)
-* [HOMER](http://homer.ucsd.edu/homer/motif/) (v5)
-* [rGREAT](https://jokergoo.github.io/rGREAT/) (v2.0)
+
+#### [BEDTools](https://bedtools.readthedocs.io/en/latest/) (v2.31+)
+```bash
+# Using conda
+conda install -c bioconda bedtools
+
+# Or download from: https://bedtools.readthedocs.io/en/latest/
+```
+
+#### [HALPER](https://github.com/pfenninglab/halLiftover-postprocessing)
+```bash
+git clone https://github.com/pfenninglab/halLiftover-postprocessing.git
+
+# Follow installation instructions in the HALPER repository
+```
+
+#### [HOMER](http://homer.ucsd.edu/homer/motif/) (v5.0+)
+```bash
+# Download and install from: http://homer.ucsd.edu/homer/motif/
+cd ~/tools
+wget http://homer.ucsd.edu/homer/configureHomer.pl
+perl configureHomer.pl -install homer
+
+# Add HOMER to PATH
+export PATH=$PATH:~/tools/homer/bin
+```
+
+#### [rGREAT](https://jokergoo.github.io/rGREAT/) (v2.0+)
+Install in R:
+```R
+if (!require("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install("rGREAT")
+```
 
 ---
 
 ## Usage
+
+### Quick Start
 ```bash    
 ```
 
+
+### Full Pipeline Execution
+To run the entire pipeline end-to-end, use SLURM:
 
 ---
 ## Demo 
@@ -81,8 +116,31 @@ The pipeline requires the following external tools. Install them according to yo
 
 ---
 ## Contact
-If you have any further questions please reach out to:
-- alfredl@andrew.cmu.edu
-- halhosan@andrew.cmu.edu
-- smakkar@andrew.cmu.edu
-- bhanvip@andrew.cmu.edu
+
+For questions, issues, or contributions, please reach out to:
+
+| Name | Email |
+|------|-------|
+| Alfred Liu | alfredl@andrew.cmu.edu |
+| Hamda Al Hosani | halhosan@andrew.cmu.edu |
+| Samridhi Makkar | smakkar@andrew.cmu.edu |
+| Bhanvi Paliwal | bhanvip@andrew.cmu.edu |
+
+---
+
+## License
+
+This project is part of the 03-713: Bioinformatics Data Integration Practicum at Carnegie Mellon University.
+
+---
+
+## Acknowledgments
+
+- BEDTools: Quinlan & Hall (2010)
+- HALPER: [Pfenning Lab](https://pfenninglab.org/)
+- HOMER: Heinz et al. (2010)
+- rGREAT: Gu et al. (2016)
+
+---
+**Last Updated:** 2026
+**Version:** 1.0
