@@ -9,9 +9,6 @@ import sys
 
 
 def run_command(cmd, step_name):
-    """
-    run a command and stop if it fails
-    """
     print(f"\n[INFO] starting step: {step_name}")
     print(f"[INFO] command: {' '.join(str(x) for x in cmd)}")
 
@@ -25,9 +22,6 @@ def run_command(cmd, step_name):
 
 
 def check_file_exists(path_str, label):
-    """
-    check that a file exists
-    """
     path = Path(path_str)
     if not path.exists():
         print(f"[ERROR] {label} not found: {path}")
@@ -36,44 +30,24 @@ def check_file_exists(path_str, label):
 
 
 def ensure_dir(path_str):
-    """
-    make sure an output directory exists
-    """
     path = Path(path_str)
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def run_alignment(
-    halper_script,
-    human_peaks,
-    mouse_peaks,
-    hal_file,
-    output_dir,
-    hal_liftover_path=None,
-    keep_chr_prefix=None,
-    min_len=50,
-    protect_dist=10,
-    max_frac=1.5,
-    preserve=None,
-):
-    """
-    submit two HALPER alignment jobs:
-    1) human -> mouse
-    2) mouse -> human
-    """
-    script = check_file_exists(halper_script, "HALPER alignment script")
-    human_peaks = check_file_exists(human_peaks, "Human peaks file")
-    mouse_peaks = check_file_exists(mouse_peaks, "Mouse peaks file")
-    hal_file = check_file_exists(hal_file, "HAL alignment file")
-    output_dir = ensure_dir(output_dir)
+# alignment
+def run_alignment(args):
+    script = check_file_exists(args.script, "HALPER alignment script")
+    human_peaks = check_file_exists(args.human_peaks, "Human peaks file")
+    mouse_peaks = check_file_exists(args.mouse_peaks, "Mouse peaks file")
+    hal_file = check_file_exists(args.hal_file, "HAL alignment file")
+    output_dir = ensure_dir(args.outdir)
 
     human_to_mouse_dir = output_dir / "human_to_mouse"
     mouse_to_human_dir = output_dir / "mouse_to_human"
     human_to_mouse_dir.mkdir(parents=True, exist_ok=True)
     mouse_to_human_dir.mkdir(parents=True, exist_ok=True)
 
-    # first mapping: human to mouse
     human_cmd = [
         "sbatch",
         str(script),
@@ -82,12 +56,11 @@ def run_alignment(
         "-s", "Human",
         "-t", "Mouse",
         "-c", str(hal_file),
-        "-min_len", str(min_len),
-        "-protect_dist", str(protect_dist),
-        "-max_frac", str(max_frac),
+        "-min_len", str(args.min_len),
+        "-protect_dist", str(args.protect_dist),
+        "-max_frac", str(args.max_frac),
     ]
 
-    # second mapping: mouse to human
     mouse_cmd = [
         "sbatch",
         str(script),
@@ -96,22 +69,21 @@ def run_alignment(
         "-s", "Mouse",
         "-t", "Human",
         "-c", str(hal_file),
-        "-min_len", str(min_len),
-        "-protect_dist", str(protect_dist),
-        "-max_frac", str(max_frac),
+        "-min_len", str(args.min_len),
+        "-protect_dist", str(args.protect_dist),
+        "-max_frac", str(args.max_frac),
     ]
 
-    # add optional arguments if the user passes them
-    if hal_liftover_path:
-        human_cmd.extend(["--halPath", str(hal_liftover_path)])
-        mouse_cmd.extend(["--halPath", str(hal_liftover_path)])
+    if args.hal_liftover_path:
+        human_cmd.extend(["--halPath", str(args.hal_liftover_path)])
+        mouse_cmd.extend(["--halPath", str(args.hal_liftover_path)])
 
-    if keep_chr_prefix:
-        human_cmd.extend(["--keepChrPrefix", str(keep_chr_prefix)])
-        mouse_cmd.extend(["--keepChrPrefix", str(keep_chr_prefix)])
+    if args.keep_chr_prefix:
+        human_cmd.extend(["--keepChrPrefix", str(args.keep_chr_prefix)])
+        mouse_cmd.extend(["--keepChrPrefix", str(args.keep_chr_prefix)])
 
-    if preserve:
-        preserve_arg = ",".join(preserve)
+    if args.preserve:
+        preserve_arg = ",".join(args.preserve)
         human_cmd.extend(["-preserve", preserve_arg])
         mouse_cmd.extend(["-preserve", preserve_arg])
 
@@ -119,63 +91,17 @@ def run_alignment(
     run_command(mouse_cmd, "alignment_mouse_to_human")
 
 
-def run_motif_analysis(script_path):
-    """
-    run motif analysis script
-    """
-    script = check_file_exists(script_path, "Motif analysis script")
+# motif
+def run_motif(args):
+    script = check_file_exists(args.script, "Motif analysis script")
     run_command(["bash", str(script)], "motif_analysis")
 
 
-def run_annotate_peaks(
-    bed_dir,
-    outdir,
-    genome="hg38",
-    homer_bin="annotatePeaks.pl",
-    gtf=None,
-    gff3=None,
-    beds=None,
-):
-    """
-    run HOMER annotation wrapper
-    """
+# classification
+def run_classification(args):
+    config = check_file_exists(args.config, "Classification config")
     script = check_file_exists(
-        "enrichment_analysis/run_annotatepeaks.py",
-        "annotatePeaks wrapper",
-    )
-
-    ensure_dir(outdir)
-
-    cmd = [
-        sys.executable,
-        str(script),
-        "--bed-dir",
-        str(bed_dir),
-        "--outdir",
-        str(outdir),
-        "--genome",
-        str(genome),
-        "--homer-bin",
-        str(homer_bin),
-    ]
-
-    if gtf:
-        cmd.extend(["--gtf", str(gtf)])
-    if gff3:
-        cmd.extend(["--gff3", str(gff3)])
-    if beds:
-        cmd.extend(["--beds"] + beds)
-
-    run_command(cmd, "enrichment_annotation")
-
-
-def run_classification(config_path, log_level="INFO"):
-    """
-    run classification step
-    """
-    config = check_file_exists(config_path, "Classification config")
-    script = check_file_exists(
-        "classification/classification.py",
+        args.script,
         "Classification script",
     )
 
@@ -185,225 +111,471 @@ def run_classification(config_path, log_level="INFO"):
         "--config",
         str(config),
         "--log-level",
-        log_level,
+        args.log_level,
     ]
     run_command(cmd, "classification")
+
+
+# annotate
+def run_annotate(args):
+    script = check_file_exists(args.script, "annotatePeaks wrapper")
+    ensure_dir(args.outdir)
+
+    cmd = [
+        sys.executable,
+        str(script),
+        "--bed-dir",
+        str(args.bed_dir),
+        "--outdir",
+        str(args.outdir),
+        "--genome",
+        str(args.genome),
+        "--homer-bin",
+        str(args.homer_bin),
+    ]
+
+    if args.gtf:
+        cmd.extend(["--gtf", str(args.gtf)])
+    if args.gff3:
+        cmd.extend(["--gff3", str(args.gff3)])
+    if args.beds:
+        cmd.extend(["--beds"] + args.beds)
+
+    run_command(cmd, "annotate_peaks")
+
+
+# great
+def run_great(args):
+    batch_script = check_file_exists(args.script, "GREAT batch script")
+    check_file_exists(args.r_script, "GREAT R script")
+    ensure_dir(args.outdir)
+
+    cmd = [
+        sys.executable,
+        str(batch_script),
+        "--bed-dir",
+        str(args.bed_dir),
+        "--outdir",
+        str(args.outdir),
+        "--species",
+        str(args.species),
+        "--rscript-bin",
+        str(args.rscript_bin),
+        "--great-r-script",
+        str(args.r_script),
+    ]
+
+    if args.beds:
+        cmd.extend(["--beds"] + args.beds)
+
+    run_command(cmd, "great_analysis")
+
+
+# full pipeline
+def run_full(args):
+    alignment_args = argparse.Namespace(
+        script=args.alignment_script,
+        human_peaks=args.human_peaks,
+        mouse_peaks=args.mouse_peaks,
+        hal_file=args.hal_file,
+        outdir=args.alignment_outdir,
+        hal_liftover_path=args.hal_liftover_path,
+        keep_chr_prefix=args.keep_chr_prefix,
+        min_len=args.min_len,
+        protect_dist=args.protect_dist,
+        max_frac=args.max_frac,
+        preserve=args.preserve,
+    )
+
+    motif_args = argparse.Namespace(
+        script=args.motif_script,
+    )
+
+    classification_args = argparse.Namespace(
+        script=args.classification_script,
+        config=args.config,
+        log_level=args.log_level,
+    )
+
+    annotate_args = argparse.Namespace(
+        script=args.annotate_script,
+        bed_dir=args.bed_dir,
+        outdir=args.annotate_outdir,
+        genome=args.genome,
+        homer_bin=args.homer_bin,
+        gtf=args.gtf,
+        gff3=args.gff3,
+        beds=args.annotate_beds,
+    )
+
+    great_args = argparse.Namespace(
+        script=args.great_script,
+        r_script=args.great_r_script,
+        bed_dir=args.bed_dir,
+        outdir=args.great_outdir,
+        species=args.great_species,
+        beds=args.great_beds,
+        rscript_bin=args.rscript_bin,
+    )
+
+    run_alignment(alignment_args)
+    run_motif(motif_args)
+    run_classification(classification_args)
+    run_annotate(annotate_args)
+    run_great(great_args)
+
+    print("\n[INFO] full pipeline finished")
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="CLI for the LiverOCRAnalysis pipeline"
     )
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    parser.add_argument(
-        "--step",
-        required=True,
-        choices=[
-            "alignment",
-            "motif",
-            "annotate",
-            "classification",
-            "full",
-        ],
-        help="pipeline step to run",
-    )
-
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="logging level for python-based steps",
-    )
-
-    # alignment arguments
-    parser.add_argument(
-        "--alignment-script",
+    # alignment parser
+    alignment_parser = subparsers.add_parser("alignment", help="run alignment")
+    alignment_parser.add_argument(
+        "--script",
         default="alignment/halper_map_peak_orthologs.sh",
         help="path to the HALPER slurm script",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--human-peaks",
+        required=True,
         help="path to human narrowPeak or BED file",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--mouse-peaks",
+        required=True,
         help="path to mouse narrowPeak or BED file",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--hal-file",
+        required=True,
         help="path to HAL alignment file",
     )
-    parser.add_argument(
-        "--alignment-outdir",
+    alignment_parser.add_argument(
+        "--outdir",
         default="results/alignment",
         help="output directory for alignment results",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--hal-liftover-path",
         default=None,
         help="optional path to halLiftover binary",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--keep-chr-prefix",
         default=None,
         help="optional chromosome prefix filter",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--min-len",
         type=int,
         default=50,
-        help="minimum ortholog length for HALPER",
+        help="minimum ortholog length",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--protect-dist",
         type=int,
         default=10,
-        help="summit protection distance for HALPER",
+        help="summit protection distance",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--max-frac",
         type=float,
         default=1.5,
-        help="maximum fraction of original peak length for HALPER",
+        help="maximum fraction of original peak length",
     )
-    parser.add_argument(
+    alignment_parser.add_argument(
         "--preserve",
         nargs="+",
         default=None,
-        help="optional narrowPeak columns to preserve, e.g. signal pValue qValue",
+        help="optional narrowPeak columns to preserve",
     )
 
-    # motif arguments
-    parser.add_argument(
-        "--motif-script",
+    # motif parser
+    motif_parser = subparsers.add_parser("motif", help="run motif analysis")
+    motif_parser.add_argument(
+        "--script",
         default="motif_analysis/run_homer.sh",
         help="path to motif analysis shell script",
     )
 
-    # enrichment arguments
-    parser.add_argument(
+    # classification parser
+    classification_parser = subparsers.add_parser("classification", help="run classification")
+    classification_parser.add_argument(
+        "--script",
+        default="classification/classification.py",
+        help="path to classification script",
+    )
+    classification_parser.add_argument(
+        "--config",
+        required=True,
+        help="path to classification YAML config",
+    )
+    classification_parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="logging level",
+    )
+
+    # annotate parser
+    annotate_parser = subparsers.add_parser("annotate", help="run annotatePeaks")
+    annotate_parser.add_argument(
+        "--script",
+        default="enrichment_analysis/run_annotatepeaks.py",
+        help="path to annotatePeaks wrapper script",
+    )
+    annotate_parser.add_argument(
         "--bed-dir",
         default="results",
-        help="directory containing BED files for enrichment annotation",
+        help="directory containing BED files",
     )
-    parser.add_argument(
+    annotate_parser.add_argument(
         "--outdir",
-        default="enrichment_analysis/annotated",
-        help="output directory for enrichment annotation results",
+        default="results/annotated",
+        help="output directory for annotatePeaks results",
     )
-    parser.add_argument(
+    annotate_parser.add_argument(
         "--genome",
         default="hg38",
-        help="genome name or fasta path for annotatePeaks",
+        help="genome name or fasta path",
     )
-    parser.add_argument(
+    annotate_parser.add_argument(
         "--homer-bin",
         default="annotatePeaks.pl",
         help="path to HOMER annotatePeaks.pl",
     )
-    parser.add_argument(
+    annotate_parser.add_argument(
         "--gtf",
         default=None,
-        help="optional GTF file for annotation",
+        help="optional GTF file",
     )
-    parser.add_argument(
+    annotate_parser.add_argument(
         "--gff3",
         default=None,
-        help="optional GFF3 file for annotation",
+        help="optional GFF3 file",
     )
-    parser.add_argument(
+    annotate_parser.add_argument(
         "--beds",
         nargs="+",
         default=None,
-        help="optional BED filenames to annotate",
+        help="optional BED filenames",
     )
 
-    # classification arguments
-    parser.add_argument(
+    # great parser
+    great_parser = subparsers.add_parser("great", help="run GREAT analysis")
+    great_parser.add_argument(
+        "--script",
+        default="enrichment_analysis/run_great_batch.py",
+        help="path to GREAT batch script",
+    )
+    great_parser.add_argument(
+        "--r-script",
+        default="enrichment_analysis/run_great_online.R",
+        help="path to GREAT R script",
+    )
+    great_parser.add_argument(
+        "--bed-dir",
+        default="results",
+        help="directory containing BED files",
+    )
+    great_parser.add_argument(
+        "--outdir",
+        default="results/great",
+        help="output directory for GREAT results",
+    )
+    great_parser.add_argument(
+        "--species",
+        default="hg38",
+        help="species or genome assembly for GREAT",
+    )
+    great_parser.add_argument(
+        "--beds",
+        nargs="+",
+        default=None,
+        help="optional BED filenames",
+    )
+    great_parser.add_argument(
+        "--rscript-bin",
+        default="Rscript",
+        help="path to Rscript executable",
+    )
+
+    # full parser
+    full_parser = subparsers.add_parser("full", help="run full pipeline")
+    full_parser.add_argument(
+        "--alignment-script",
+        default="alignment/halper_map_peak_orthologs.sh",
+        help="path to the HALPER slurm script",
+    )
+    full_parser.add_argument(
+        "--human-peaks",
+        required=True,
+        help="path to human narrowPeak or BED file",
+    )
+    full_parser.add_argument(
+        "--mouse-peaks",
+        required=True,
+        help="path to mouse narrowPeak or BED file",
+    )
+    full_parser.add_argument(
+        "--hal-file",
+        required=True,
+        help="path to HAL alignment file",
+    )
+    full_parser.add_argument(
+        "--alignment-outdir",
+        default="results/alignment",
+        help="output directory for alignment results",
+    )
+    full_parser.add_argument(
+        "--hal-liftover-path",
+        default=None,
+        help="optional path to halLiftover binary",
+    )
+    full_parser.add_argument(
+        "--keep-chr-prefix",
+        default=None,
+        help="optional chromosome prefix filter",
+    )
+    full_parser.add_argument(
+        "--min-len",
+        type=int,
+        default=50,
+        help="minimum ortholog length",
+    )
+    full_parser.add_argument(
+        "--protect-dist",
+        type=int,
+        default=10,
+        help="summit protection distance",
+    )
+    full_parser.add_argument(
+        "--max-frac",
+        type=float,
+        default=1.5,
+        help="maximum fraction of original peak length",
+    )
+    full_parser.add_argument(
+        "--preserve",
+        nargs="+",
+        default=None,
+        help="optional narrowPeak columns to preserve",
+    )
+    full_parser.add_argument(
+        "--motif-script",
+        default="motif_analysis/run_homer.sh",
+        help="path to motif analysis shell script",
+    )
+    full_parser.add_argument(
+        "--classification-script",
+        default="classification/classification.py",
+        help="path to classification script",
+    )
+    full_parser.add_argument(
         "--config",
-        default="classification/sample_config.yaml",
+        required=True,
         help="path to classification YAML config",
+    )
+    full_parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="logging level",
+    )
+    full_parser.add_argument(
+        "--annotate-script",
+        default="enrichment_analysis/run_annotatepeaks.py",
+        help="path to annotatePeaks wrapper script",
+    )
+    full_parser.add_argument(
+        "--bed-dir",
+        default="results",
+        help="directory containing BED files",
+    )
+    full_parser.add_argument(
+        "--annotate-outdir",
+        default="results/annotated",
+        help="output directory for annotatePeaks results",
+    )
+    full_parser.add_argument(
+        "--genome",
+        default="hg38",
+        help="genome name or fasta path",
+    )
+    full_parser.add_argument(
+        "--homer-bin",
+        default="annotatePeaks.pl",
+        help="path to HOMER annotatePeaks.pl",
+    )
+    full_parser.add_argument(
+        "--gtf",
+        default=None,
+        help="optional GTF file",
+    )
+    full_parser.add_argument(
+        "--gff3",
+        default=None,
+        help="optional GFF3 file",
+    )
+    full_parser.add_argument(
+        "--annotate-beds",
+        nargs="+",
+        default=None,
+        help="optional BED filenames for annotatePeaks",
+    )
+    full_parser.add_argument(
+        "--great-script",
+        default="enrichment_analysis/run_great_batch.py",
+        help="path to GREAT batch script",
+    )
+    full_parser.add_argument(
+        "--great-r-script",
+        default="enrichment_analysis/run_great_online.R",
+        help="path to GREAT R script",
+    )
+    full_parser.add_argument(
+        "--great-outdir",
+        default="results/great",
+        help="output directory for GREAT results",
+    )
+    full_parser.add_argument(
+        "--great-species",
+        default="hg38",
+        help="species or genome assembly for GREAT",
+    )
+    full_parser.add_argument(
+        "--great-beds",
+        nargs="+",
+        default=None,
+        help="optional BED filenames for GREAT",
+    )
+    full_parser.add_argument(
+        "--rscript-bin",
+        default="Rscript",
+        help="path to Rscript executable",
     )
 
     args = parser.parse_args()
 
-    if args.step == "alignment":
-        if not args.human_peaks or not args.mouse_peaks or not args.hal_file:
-            print("[ERROR] alignment step requires:")
-            print("        --human-peaks")
-            print("        --mouse-peaks")
-            print("        --hal-file")
-            sys.exit(1)
-
-        run_alignment(
-            halper_script=args.alignment_script,
-            human_peaks=args.human_peaks,
-            mouse_peaks=args.mouse_peaks,
-            hal_file=args.hal_file,
-            output_dir=args.alignment_outdir,
-            hal_liftover_path=args.hal_liftover_path,
-            keep_chr_prefix=args.keep_chr_prefix,
-            min_len=args.min_len,
-            protect_dist=args.protect_dist,
-            max_frac=args.max_frac,
-            preserve=args.preserve,
-        )
-
-    elif args.step == "motif":
-        run_motif_analysis(args.motif_script)
-
-    elif args.step == "annotate":
-        run_annotate_peaks(
-            bed_dir=args.bed_dir,
-            outdir=args.outdir,
-            genome=args.genome,
-            homer_bin=args.homer_bin,
-            gtf=args.gtf,
-            gff3=args.gff3,
-            beds=args.beds,
-        )
-
-    elif args.step == "classification":
-        run_classification(args.config, args.log_level)
-
-    elif args.step == "full":
-        if not args.human_peaks or not args.mouse_peaks or not args.hal_file:
-            print("[ERROR] full pipeline requires alignment inputs:")
-            print("        --human-peaks")
-            print("        --mouse-peaks")
-            print("        --hal-file")
-            sys.exit(1)
-
-        
-        run_alignment(
-            halper_script=args.alignment_script,
-            human_peaks=args.human_peaks,
-            mouse_peaks=args.mouse_peaks,
-            hal_file=args.hal_file,
-            output_dir=args.alignment_outdir,
-            hal_liftover_path=args.hal_liftover_path,
-            keep_chr_prefix=args.keep_chr_prefix,
-            min_len=args.min_len,
-            protect_dist=args.protect_dist,
-            max_frac=args.max_frac,
-            preserve=args.preserve,
-        )
-        run_motif_analysis(args.motif_script)
-        run_annotate_peaks(
-            bed_dir=args.bed_dir,
-            outdir=args.outdir,
-            genome=args.genome,
-            homer_bin=args.homer_bin,
-            gtf=args.gtf,
-            gff3=args.gff3,
-            beds=args.beds,
-        )
-        run_classification(args.config, args.log_level)
-
-        print("\n[INFO] full pipeline finished")
-
+    if args.command == "alignment":
+        run_alignment(args)
+    elif args.command == "motif":
+        run_motif(args)
+    elif args.command == "classification":
+        run_classification(args)
+    elif args.command == "annotate":
+        run_annotate(args)
+    elif args.command == "great":
+        run_great(args)
+    elif args.command == "full":
+        run_full(args)
     else:
-        print("[ERROR] unknown step selected")
+        print("[ERROR] unknown command")
         sys.exit(1)
 
 
