@@ -8,7 +8,6 @@ Generates:
     - *_filtered.tsv – All significant terms for each file
     - *_top15.tsv – Top 15 terms by fold enrichment
     - *_top_terms.png – Bar plot of top enriched terms
-    - *_volcano.png – Volcano plot (fold enrichment vs. p-value)
 """
 
 import pandas as pd
@@ -180,61 +179,6 @@ def plot_top_terms(df: pd.DataFrame, filename: str, n: int = 15):
     print(f"Saved top_terms plot to {output_path}")
 
 
-def plot_volcano(df: pd.DataFrame, filename: str):
-    """Generate a volcano plot (fold enrichment vs. -log10 p-value)."""
-    df = normalize_column_names(df).copy()
-    
-    pval_col = 'pval' if 'pval' in df.columns else 'fdr'
-    fold_col = 'fold_enrichment' if 'fold_enrichment' in df.columns else None
-    observed_col = 'observed_genes' if 'observed_genes' in df.columns else None
-    
-    if not fold_col or pval_col not in df.columns:
-        print(f"Warning: Could not create volcano plot for {filename} (missing columns: fold={fold_col}, pval={pval_col})")
-        return
-    
-    #Convert to numeric
-    df[fold_col] = pd.to_numeric(df[fold_col], errors='coerce')
-    df[pval_col] = pd.to_numeric(df[pval_col], errors='coerce')
-    df = df.dropna(subset=[fold_col, pval_col])
-    
-    if len(df) == 0:
-        print(f"  Warning: No data after conversion for {filename}")
-        return
-
-    #Calculate -log10 p-value
-    df['neg_log10_pval'] = -np.log10(df[pval_col] + 1e-300)
-    
-    #Create plot
-    fig, ax = plt.subplots(figsize=(10, 7))
-    
-    #Color by significance
-    colors = ['red' if (x >= min_fold_enrichment and y > -np.log10(min_pval)) 
-              else 'gray' for x, y in zip(df[fold_col], df['neg_log10_pval'])]
-    
-    sizes = 30
-    if observed_col in df.columns:
-        df[observed_col] = pd.to_numeric(df[observed_col], errors='coerce')
-        sizes = 30 + (df[observed_col] * 2)
-    
-    ax.scatter(df[fold_col], df['neg_log10_pval'], alpha=0.6, c=colors, s=sizes, edgecolor='black', linewidth=0.5)
-    
-    #Add threshold lines
-    ax.axvline(min_fold_enrichment, color='red', linestyle='--', alpha=0.5, label=f"Fold > {min_fold_enrichment}")
-    ax.axhline(-np.log10(min_pval), color='red', linestyle='--', alpha=0.5, label=f"p < {min_pval}")
-    
-    ax.set_xlabel("Fold Enrichment", fontsize=11, fontweight='bold')
-    ax.set_ylabel("-log10(p-value)", fontsize=11, fontweight='bold')
-    ax.set_title(f"Volcano Plot: {filename}", fontsize=12, fontweight='bold')
-    ax.legend()
-    ax.grid(alpha=0.3)
-    
-    plt.tight_layout()
-    output_path = output_dir / filename.replace(".tsv", "_volcano.png")
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    print(f"Saved volcano plot to {output_path}")
-
-
 #GENERATE SUMMARY STATISTICS
 print("\nSUMMARY STATISTICS")
 
@@ -302,8 +246,7 @@ for filename, df in results.items():
     
     #Generate plots
     plot_top_terms(df, filename, n=top_n)
-    plot_volcano(df, filename)
-    print(f"Saved plots: *_top_terms.png, *_volcano.png")
+    print(f"Saved plots: *_top_terms.png")
 
 
 #SUMMARY
@@ -313,4 +256,3 @@ print("  1. summary.csv")
 print("  2. *_filtered.tsv (all significant terms)")
 print("  3. *_top15.tsv (top enriched terms)")
 print("  4. *_top_terms.png (bar plots)")
-print("  5. *_volcano.png (volcano plots)")
