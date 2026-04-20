@@ -14,7 +14,7 @@ This repository contains a bioinformatics pipeline for analyzing and comparing o
 ## Citation
 To cite this repository, please copy the following:
 
-Hamda Al Hosani, Alfred Liu, Samridhi Makkar, Bhanvi Paliwal (2026). _LiverOCRAnalysis_. 03-713: Bioinformatics Data Integration Practicum, Carnegie Mellon Univeristy.
+__Hamda Al Hosani, Alfred Liu, Samridhi Makkar, Bhanvi Paliwal (2026).__ _LiverOCRAnalysis_. 03-713: Bioinformatics Data Integration Practicum, Carnegie Mellon Univeristy.
 
 ---
 
@@ -101,6 +101,8 @@ BiocManager::install("rGREAT")
 ---
 
 ## Usage
+
+TALK ABOUT INPUTS + OUTPUTS FOR EACH SECTION
 
 ### Quick Start
 ```bash    
