@@ -161,6 +161,43 @@ python main.py full \
   --config classification/sample_config.yaml
 ```
 
+### Flags Description
+
+
+
+| Module | Flag | Description |
+|-------|------|------------|
+| **Alignment** | `--human-peaks` | Human OCR peak file (BED / narrowPeak) |
+|  | `--mouse-peaks` | Mouse OCR peak file |
+|  | `--hal-file` | HAL alignment file for cross-species mapping |
+|  | `--outdir` | Output directory (default: `results/alignment`) |
+|  | `--min-len` | Minimum length for mapped regions |
+|  | `--protect-dist` | Distance around peak summit to preserve |
+|  | `--max-frac` | Maximum allowed size change after mapping |
+|  | `--preserve` | Extra peak columns to keep |
+|  | `--hal-liftover-path` | Path to `halLiftover` binary |
+|  | `--keep-chr-prefix` | Filter chromosomes by prefix |
+| **Classification** | `--config` | YAML file defining OCRs, TSS, and mappings |
+|  | `--log-level` | Logging verbosity (INFO, DEBUG, etc.) |
+|  | `--script` | Path to classification script |
+| **Motif** | `--script` | Motif analysis script |
+| **Annotate** | `--bed-dir` | Directory containing BED files |
+|  | `--outdir` | Output directory (default: `results/annotated`) |
+|  | `--genome` | Genome build or FASTA (default: hg38) |
+|  | `--homer-bin` | Path to `annotatePeaks.pl` |
+|  | `--gtf` / `--gff3` | Custom annotation file |
+|  | `--beds` | Specific BED files to process |
+| **GREAT** | `--bed-dir` | Directory containing BED files |
+|  | `--outdir` | Output directory (default: `results/great`) |
+|  | `--species` | Genome assembly (default: hg38) |
+|  | `--beds` | Specific BED files to analyze |
+|  | `--rscript-bin` | Path to Rscript executable |
+|  | `--script` | GREAT batch script |
+|  | `--r-script` | GREAT R script |
+| **Full** | `--human-peaks`, `--mouse-peaks`, `--hal-file` | Alignment inputs |
+|  | `--config` | Classification config |
+
+
 
 
 
