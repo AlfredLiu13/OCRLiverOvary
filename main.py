@@ -374,7 +374,7 @@ def main():
             print("        --hal-file")
             sys.exit(1)
 
-        # run steps in the order you confirmed
+        
         run_alignment(
             halper_script=args.alignment_script,
             human_peaks=args.human_peaks,
