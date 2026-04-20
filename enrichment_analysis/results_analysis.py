@@ -23,7 +23,7 @@ plt.rcParams['figure.figsize'] = (12, 8)
 
 #Results directory -> Contains all output TSV files from rGREAT
 results_dir = Path("results/enrichment_results")
-output_dir = Path("enrichment_analysis/great_summaries")
+output_dir = Path("enrichment_analysis/results_summaries")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 #Filtering thresholds
@@ -236,7 +236,7 @@ for filename, df in results.items():
         df_filtered = normalize_column_names(df_filtered)
         fold_col = 'fold_enrichment' if 'fold_enrichment' in df_filtered.columns else None
         
-        fold_values = []
+        fold_values = pd.Series([])
         if fold_col:
             fold_values = pd.to_numeric(df_filtered[fold_col], errors='coerce').dropna()
         
