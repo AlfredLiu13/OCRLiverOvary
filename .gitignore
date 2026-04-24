@@ -1,1 +1,3 @@
+# Logs (SLURM/stdout/stderr)
+logs/
 .DS_Store
