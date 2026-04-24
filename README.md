@@ -59,6 +59,7 @@ conda create -n ocr_analysis python=3.8
 conda activate ocr_analysis
 pip install -r requirements.txt
 conda install -c bioconda bedtools pybedtools
+conda install -c conda-forge readr -y
 ```
 
 ### 3. Install External Tools
