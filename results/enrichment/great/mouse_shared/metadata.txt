@@ -1,0 +1,5 @@
+bed_file: results/classification_results/raw_results/mouse_shared.bed
+genome: mm10
+original_regions: 38051
+filtered_invalid_regions: 6134
+remaining_regions: 31917

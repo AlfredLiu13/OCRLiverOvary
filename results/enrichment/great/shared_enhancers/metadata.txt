@@ -1,0 +1,5 @@
+bed_file: results/classification_results/raw_results/shared_enhancers.bed
+genome: mm10
+original_regions: 28890
+filtered_invalid_regions: 0
+remaining_regions: 28890

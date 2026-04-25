@@ -1,0 +1,61 @@
+dataset	name	Binom_Adjp_BH	Binom_Fold_Enrichment
+human_specific	positive regulation of extracellular matrix constituent secretion	5.73264400165e-25	6.53097
+human_specific	negative regulation of exit from mitosis	5.73264400165e-25	7.85734
+human_specific	fibroblast activation	6.75836151433333e-19	4.585661
+human_specific	positive regulation of myosin-light-chain-phosphatase activity	8.03683622175e-18	7.510421
+human_specific	regulation of grooming behavior	1.12551532482e-17	2.547735
+human_specific	ureter development	1.78125268283333e-16	2.02878
+human_specific	endocrine signaling	1.8354317948999999e-16	8.797997
+human_specific	positive regulation of extracellular matrix assembly	1.3502548592499999e-15	2.55032
+human_specific	negative regulation of fibroblast growth factor production	9.80026174933333e-15	3.77841
+human_specific	positive regulation of endothelial cell apoptotic process	1.5765653151e-14	2.376017
+mouse_specific	collateral sprouting in absence of injury	1.0185601272000001e-19	4.047233
+mouse_specific	T cell tolerance induction	2.103976644e-19	6.823647
+mouse_specific	common myeloid progenitor cell proliferation	3.76784479866667e-18	3.812812
+mouse_specific	neuron remodeling	5.80099058e-18	2.664754
+mouse_specific	negative regulation of PERK-mediated unfolded protein response	6.644442112e-18	5.676384
+mouse_specific	glycosylation	3.0801315416666704e-17	1.402716
+mouse_specific	interleukin-17 production	4.17653654e-16	5.186657
+mouse_specific	negative regulation of insulin receptor signaling pathway	8.077094324444439e-16	2.081747
+mouse_specific	glycoprotein metabolic process	8.077094324444439e-16	1.311354
+mouse_specific	viral budding via host ESCRT complex	1.0515962765e-15	3.435833
+mouse_shared	thiamine diphosphate biosynthetic process	2.999873261e-45	6.50486
+mouse_shared	thiamine diphosphate metabolic process	4.263338387e-45	6.429657
+mouse_shared	O-glycan processing	1.9783876933333297e-42	4.106372
+mouse_shared	glycosylation	3.462305e-42	1.543739
+mouse_shared	thiamine metabolic process	1.016022238e-38	5.333694
+mouse_shared	urinary bladder smooth muscle contraction	8.25143639833333e-38	3.575839
+mouse_shared	protein glycosylation	1.8504581260000001e-37	1.516966
+mouse_shared	eye blink reflex	7.59332083125e-35	5.883432
+mouse_shared	glycoprotein metabolic process	1.05815836622222e-34	1.395576
+mouse_shared	cellular potassium ion homeostasis	8.081741129e-34	3.973597
+shared_promoters	primary metabolic process	6.221085332000001e-25	1.146462
+shared_promoters	cellular metabolic process	2.024331848e-22	1.139418
+shared_promoters	cellular macromolecule metabolic process	1.60231461133333e-21	1.162625
+shared_promoters	organic substance metabolic process	8.091851845e-21	1.126684
+shared_promoters	metabolic process	1.5347205566e-20	1.120838
+shared_promoters	cellular response to stress	6.866110790000001e-20	1.402765
+shared_promoters	macromolecule metabolic process	2.1093674799999998e-17	1.135555
+shared_promoters	protein folding	2.356507615e-16	2.735021
+shared_promoters	organelle organization	1.32587330088889e-15	1.263235
+shared_promoters	ncRNA metabolic process	1.3446262200000002e-15	1.895638
+shared_enhancers	primary metabolic process	3.2375784979999996e-263	1.202063
+shared_enhancers	cellular metabolic process	1.6637789245e-247	1.196956
+shared_enhancers	metabolic process	2.192463735e-245	1.178087
+shared_enhancers	organic substance metabolic process	2.0947992450000002e-240	1.183396
+shared_enhancers	cellular macromolecule metabolic process	1.713090918e-194	1.208876
+shared_enhancers	macromolecule metabolic process	3.45343216166667e-175	1.183769
+shared_enhancers	cellular nitrogen compound metabolic process	1.7056703840000002e-149	1.234836
+shared_enhancers	nucleobase-containing compound metabolic process	4.2881825525e-146	1.252797
+shared_enhancers	heterocycle metabolic process	3.1985589533333304e-145	1.247218
+shared_enhancers	organic cyclic compound metabolic process	3.34393213e-144	1.235948
+human_shared	negative regulation of leukocyte adhesion to arterial endothelial cell	3.1520489604000003e-56	8.0253
+human_shared	regulation of leukocyte adhesion to arterial endothelial cell	3.7713404502e-56	7.953647
+human_shared	negative regulation of muscle hyperplasia	2.52943306856667e-55	7.7667
+human_shared	regulation of muscle hyperplasia	7.72379677075e-55	7.654855
+human_shared	positive regulation of hemoglobin biosynthetic process	2.11002406924e-54	7.558149
+human_shared	cellular response to retinoic acid	2.87528974966667e-53	1.966327
+human_shared	regulation of hemoglobin biosynthetic process	7.63633688714286e-52	7.083516
+human_shared	post-embryonic hemopoiesis	2.5406722801249997e-50	6.262553
+human_shared	negative regulation of phosphatidylinositol 3-kinase signaling	3.74878270755556e-49	4.184956
+human_shared	response to retinoic acid	2.1754629867000002e-48	1.780925

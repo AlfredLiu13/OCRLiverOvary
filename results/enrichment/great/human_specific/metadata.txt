@@ -1,0 +1,5 @@
+bed_file: results/classification_results/raw_results/human_specific.bed
+genome: hg38
+original_regions: 30876
+filtered_invalid_regions: 868
+remaining_regions: 30008
