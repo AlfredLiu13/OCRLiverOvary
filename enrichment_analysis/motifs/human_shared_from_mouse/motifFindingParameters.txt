@@ -1,1 +1,0 @@
-cmd = classification/results/raw_results/human_shared_from_mouse.bed /ocean/projects/bio230007p/ikaplow/HumanGenomeInfo/hg38.fa enrichment_analysis/motifs/human_shared_from_mouse/ -size given -p 8 -preparsedDir /jet/home/bpaliwal/homer_preparsed -preparse
