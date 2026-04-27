@@ -11,12 +11,6 @@ This repository contains a bioinformatics pipeline for analyzing and comparing o
 - Performing enrichment analysis  
 
 ---
-## Citation
-To cite this repository, please copy the following:
-
-__Hamda Al Hosani, Alfred Liu, Samridhi Makkar, Bhanvi Paliwal (2026).__ _LiverOCRAnalysis_. 03-713: Bioinformatics Data Integration Practicum, Carnegie Mellon Univeristy.
-
----
 
 ## Structure
 
@@ -102,17 +96,9 @@ BiocManager::install("rGREAT")
 ---
 
 
-
-
-
-
-
-
 ## Usage
 
 Each step can be run independently or you can run the full pipeline
-
----
 
 ###  Input Requirements
 
@@ -152,6 +138,8 @@ python main.py great \
   --species hg38
   ```
 
+---
+
 ### To Run Full LiverOCRAnalysis
 
 ```bash
@@ -162,9 +150,9 @@ python main.py full \
   --config classification/sample_config.yaml
 ```
 
+---
+
 ### Flags Description
-
-
 
 | Module | Flag | Description |
 |-------|------|------------|
@@ -198,12 +186,38 @@ python main.py full \
 | **Full** | `--human-peaks`, `--mouse-peaks`, `--hal-file` | Alignment inputs |
 |  | `--config` | Classification config |
 
+---
 
+### Outputs
 
+| Module | Output File / Artifact | Location | Format | Description |
+|--------|----------------------|----------|--------|-------------|
+| **Alignment** | `*.HALPER.narrowPeak.gz` | `results/alignment_results/human_to_mouse/`<br>`results/alignment_results/mouse_to_human/` | gzipped narrowPeak | Cross-species mapped OCR peaks (main HALPER output) |
+| **Alignment** | `*.halLiftover.tFile.bed.gz` | Same as above | gzipped BED | Intermediate file of target-genome regions before HALPER filtering |
+| **Alignment** | `*.halLiftover.sFile.bed.gz` | Same as above | gzipped BED | Intermediate file of peak summit positions before HALPER filtering |
+| **Classification** | `{species}_all_promoters.bed`<br>`{species}_all_enhancers.bed` | `results/classification_results/raw_results/` | BED | All OCRs per species split into promoters (≤2000 bp from TSS) and enhancers (>2000 bp) |
+| **Classification** | `shared_promoters.bed`<br>`shared_enhancers.bed` | `results/classification_results/raw_results/` | BED | OCRs with orthologs open in both species, classified as promoters or enhancers |
+| **Classification** | `{species}_specific.bed`<br>`{species}_specific_promoters.bed`<br>`{species}_specific_enhancers.bed` | `results/classification_results/raw_results/` | BED | OCRs open in one species but not the other, with promoter/enhancer sub-classifications |
+| **Classification** | `summary_table.csv` | `results/classification_results/results_analyzed/` | CSV | Per-category counts and percentages for all classified OCR sets |
+| **Classification** | `promoter_enhancer_classification.png`<br>`ortholog_status.png`<br>`conservation_comparison.png`<br>`percentage_comparison.png` | `results/classification_results/results_analyzed/` | PNG | Bar charts and comparison plots of OCR classification and conservation |
+| **Enrichment Analysis** | `gobp.csv` | `results/enrichment/great/{dataset}/` | CSV | GO Biological Process enrichment results (p-values, fold enrichment) per OCR category |
+| **Enrichment Analysis** | `metadata.txt` | `results/enrichment/great/{dataset}/` | TXT | Region counts and filtering details for the GREAT submission |
+| **Enrichment Analysis** | `great_summary.tsv` | `results/enrichment/summary/` | TSV | Top 10 enriched GO BP terms per dataset consolidated across all OCR categories |
+| **Enrichment Analysis** | `barplot_{dataset}.png` | `results/enrichment/plots/` | PNG | Bar plots of top enriched GO BP terms per OCR category (one per dataset) |
+| **Enrichment Analysis** | `comparison_heatmap.png` | `results/enrichment/plots/` | PNG | Heatmap comparing GO BP enrichment scores across all OCR categories |
+| **Motif Analysis** | `homerResults.html` | `results/findmotifs_results/{region_type}/` | HTML | Interactive report of de novo motif discovery results |
+| **Motif Analysis** | `knownResults.html`<br>`knownResults.txt` | `results/findmotifs_results/{region_type}/` | HTML / TSV | Known transcription factor motif enrichment report with statistics |
+| **Motif Analysis** | `homerMotifs.all.motifs`<br>`homerMotifs.motifs8`<br>`homerMotifs.motifs10`<br>`homerMotifs.motifs12` | `results/findmotifs_results/{region_type}/` | HOMER motif | De novo motif position weight matrices at 8, 10, and 12 bp lengths |
+| **Motif Analysis** | `known{N}.motif`<br>`known{N}.logo.svg` | `results/findmotifs_results/{region_type}/knownResults/` | PWM / SVG | Individual known motif PWM files and sequence logo images |
 
+---
 
+## Citation
+To cite this repository, please copy the following:
 
+__Hamda Al Hosani, Alfred Liu, Samridhi Makkar, Bhanvi Paliwal (2026).__ _LiverOCRAnalysis_. 03-713: Bioinformatics Data Integration Practicum, Carnegie Mellon Univeristy.
 
+---
 
 ## Contact
 
