@@ -242,6 +242,8 @@ This script runs:
 | **Enrichment Analysis** | `great_summary.tsv` | Top enriched terms across datasets |
 | **Enrichment Analysis** | plots (`.png`) | Barplots and heatmap of enrichment results |
 
+---
+
 ## Citation
 To cite this repository, please copy the following:
 
