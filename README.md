@@ -260,7 +260,7 @@ Enrichment:
 | **Classification** | `{species}_specific_promoters.bed`<br>`{species}_specific_enhancers.bed` | Species-specific OCRs classified by type |
 | **Classification** | plots (`.png`) | Visualization of OCR classification |
 | **Motif Analysis** | `homerResults.html` | De novo motif discovery results |
-| **Motif Analysis** | `knownResults.html` | Known TF motif enrichment |
+| **Motif Analysis** | `knownResults.txt` | Known TF motif enrichment |
 | **Motif Analysis** | `homerMotifs.*` | Motif PWMs |
 | **Enrichment Analysis** | `gobp.csv` | GO Biological Process enrichment results |
 | **Enrichment Analysis** | `metadata.txt` | GREAT run metadata |
