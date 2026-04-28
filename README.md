@@ -270,27 +270,6 @@ Enrichment:
 ---
 
 
-
-## Results: Data Quality Metrics
-
-**Table 1. Data quality metrics for all human and mouse replicates in ovary and liver tissues**
-
-| Metric | Ovary (Human rep1) | Ovary (Human rep2) | Ovary (Mouse rep1) | Ovary (Mouse rep2) | Liver (Human rep1) | Liver (Human rep2) | Liver (Mouse rep1) | Liver (Mouse rep2) |
-|--------|--------------------|--------------------|--------------------|--------------------|--------------------|--------------------|--------------------|--------------------|
-| % Mapped Reads | 97.9 | 98.2 | 98.5 | 98.6 | 98.9 | 98.6 | 97.8 | 97.9 |
-| % Properly Paired Reads | 96.2 | 96.6 | 94.4 | 94.6 | 97.9 | 97.5 | 95.7 | 95.6 |
-| % Mitochondrial Reads | 4.77 | 4.44 | 4.56 | 3.29 | 34.81 | 14.22 | 0.60 | 0.55 |
-| Filtered Read Counts (million) | 48.5 | 138.3 | 13.7 | 36.2 | 47.8 | 101.5 | 54.7 | 54.8 |
-| NRF (%) | 87.6 | 94.0 | 89.0 | 85.2 | 88.5 | 90.0 | 93.6 | 94.4 |
-| TSS Enrichment Peak | 6.64 | 13.8 | 17.6 | 13.5 | 23.3 | 21.0 | 7.69 | 7.35 |
-
-**Summary:**
-- All samples show high mapping rates (>97%), indicating strong alignment quality.
-- Proper pairing rates are consistently high, supporting good sequencing integrity.
-- Liver (human) shows elevated mitochondrial read percentages, which may indicate sample-specific bias or quality variation.
-- TSS enrichment scores suggest strong signal quality, particularly in liver human samples.
-- NRF values indicate generally good library complexity across datasets.
-
 ## Citation
 To cite this repository, please copy the following:
 
